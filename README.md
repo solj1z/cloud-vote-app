@@ -58,7 +58,7 @@ kubectl apply -f k8s/04-application/
 4. Verify Status
 
 kubectl get ingress
-# Open the ADDRESS URL in your browser
+- Open the ADDRESS URL in your browser
 
 📄 Documentation
 
