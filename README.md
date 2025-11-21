@@ -60,8 +60,13 @@ kubectl apply -f k8s/04-application/
 kubectl get ingress
 - Open the ADDRESS URL in your browser
 
-📄 Documentation
+🗳️ CloudVote Enterprise: Distributed Consensus System
 
-Full architectural documentation is available in the docs/ folder or hosted via the CloudVote-Docs container.
+... (rest of the file content) ...
+
+📄 Live Documentation
+
+The complete architectural whitepaper, including all Kubernetes manifests and the detailed architecture diagram, is hosted on a dedicated AWS EC2 t2.micro instance using a lightweight Docker/Nginx container.
+URL: http://3.90.216.139:80
 
 Architected by Soulayman Jazouli
