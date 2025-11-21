@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vote-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vote-app
+  template:
+    metadata:
+      labels:
+        app: vote-app
+    spec:
+      containers:
+      - name: vote-app
+        image: solajaz/vote-app:v6
+        ports:
+        - containerPort: 3000
+        
+        env:
+
+        - name: DB_HOST
+          value: "mysql-service"
+        - name: DB_USER
+          value: "root"
+        - name: DB_NAME
+          value: "my_app_db"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass
+              key: password
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+
+---
+apiVersion: v1 
+kind: Service
+metadata:
+  name: vote-app-service
+  labels:
+    app: vote-app
+spec:
+  type: NodePort
+  selector:
+    app: vote-app
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vote-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vote-app-service
+                port:
+                  number: 80

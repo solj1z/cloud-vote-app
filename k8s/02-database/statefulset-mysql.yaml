@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-statefulset
+  labels:
+    app: mysql
+spec:
+  serviceName: "mysql-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 60
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "database"
+          effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - database
+
+      initContainers:
+        - name: init-mysql
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              echo ">>> Checking if MySQL is already initialized"
+              if [ ! -f /var/lib/mysql/auto.cnf ]; then
+                echo ">>> No MySQL data found — cleaning volume for initialization"
+                find /var/lib/mysql -mindepth 1 ! -name "lost+found" -exec rm -rf {} +
+                rm -rf /var/lib/mysql/lost+found
+              else
+                echo ">>> MySQL data exists — skipping cleanup"
+              fi
+              echo ">>> Fixing permissions"
+              chown -R 999:999 /var/lib/mysql
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+            - name: MYSQL_DATABASE
+              value: my_app_db
+          
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "export MYSQL_PWD=$MYSQL_ROOT_PASSWORD; mysqladmin ping -uroot -h 127.0.0.1"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "export MYSQL_PWD=$MYSQL_ROOT_PASSWORD; mysqladmin ping -uroot -h 127.0.0.1"
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-persistent-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: ebs-sc
+        resources:
+          requests:
+            storage: 10Gi
