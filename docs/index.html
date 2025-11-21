@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudVote Architecture | Technical Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --accent: #3b82f6;
+            --aws: #ff9900;
+            --k8s: #326ce5;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #e2e8f0; }
+        pre { border-radius: 8px !important; background: #020617 !important; border: 1px solid #334155; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .nav-item.active { border-bottom: 2px solid var(--accent); color: white; }
+        .nav-item { cursor: pointer; padding-bottom: 10px; color: #94a3b8; transition: 0.3s; }
+        .nav-item:hover { color: white; }
+        
+        /* Diagram Connectors */
+        .connector { position: absolute; background: #475569; z-index: 0; }
+        .node { z-index: 10; transition: transform 0.2s; }
+        .node:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- HERO SECTION -->
+    <header class="border-b border-slate-800 bg-slate-900/50 sticky top-0 backdrop-blur-md z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white">V</div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight">CloudVote Enterprise</h1>
+                    <div class="text-xs text-blue-400 font-mono">INFRASTRUCTURE AS CODE (IaC)</div>
+                </div>
+            </div>
+            <div class="flex gap-4 text-sm font-medium text-slate-400">
+                <span>AWS EKS v1.29</span>
+                <span class="text-green-400">● Production Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+        <!-- LEFT COLUMN: CONTEXT & DIAGRAM -->
+        <div class="lg:col-span-4 space-y-8">
+            
+            <!-- Architecture Diagram -->
+            <div class="glass rounded-2xl p-6 relative overflow-hidden">
+                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">Traffic Flow Architecture</h3>
+                
+                <div class="relative h-[500px] border border-dashed border-slate-700 rounded-xl bg-slate-900/50 p-4 flex flex-col items-center">
+                    
+                    <!-- Internet -->
+                    <div class="node bg-slate-800 border border-slate-600 p-3 rounded-lg text-center w-32 mb-8">
+                        <div class="text-xs text-slate-400">Internet</div>
+                        <div class="font-bold">User</div>
+                    </div>
+                    
+                    <!-- ALB -->
+                    <div class="connector w-0.5 h-8 bg-orange-500"></div>
+                    <div class="node bg-orange-900/30 border border-orange-500/50 p-3 rounded-lg text-center w-48 mb-8 mt-8">
+                        <div class="text-xs text-orange-400">AWS ALB</div>
+                        <div class="font-bold text-orange-200">Ingress Controller</div>
+                    </div>
+
+                    <!-- EKS Boundary -->
+                    <div class="w-full border border-blue-900/50 bg-blue-900/10 rounded-xl p-4 relative flex flex-col items-center">
+                        <div class="absolute -top-3 left-4 bg-slate-900 px-2 text-xs text-blue-400">EKS Cluster</div>
+
+                        <!-- App Layer -->
+                        <div class="connector w-0.5 h-6 bg-blue-500 -mt-4"></div>
+                        <div class="node bg-blue-900/30 border border-blue-500/50 p-3 rounded-lg text-center w-40 mb-6 mt-2">
+                            <div class="text-xs text-blue-400">Deployment</div>
+                            <div class="font-bold text-white">Node.js App</div>
+                        </div>
+
+                        <!-- DB Layer -->
+                        <div class="connector w-0.5 h-6 bg-slate-600"></div>
+                        <div class="node bg-indigo-900/30 border border-indigo-500/50 p-3 rounded-lg text-center w-40 relative">
+                            <div class="text-xs text-indigo-400">StatefulSet</div>
+                            <div class="font-bold text-white">MySQL 8.0</div>
+                            
+                            <!-- Secret Connection -->
+                            <div class="absolute top-1/2 -right-12 w-12 h-0.5 bg-yellow-600/50"></div>
+                            <div class="absolute top-1/2 -right-32 -mt-4 bg-yellow-900/20 border border-yellow-600/50 p-2 rounded text-[10px] w-20 text-yellow-500">
+                                AWS Secrets Manager
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Stats -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass p-4 rounded-xl">
+                    <div class="text-2xl font-bold text-white">2</div>
+                    <div class="text-xs text-slate-400">High-Availability Replicas</div>
+                </div>
+                <div class="glass p-4 rounded-xl">
+                    <div class="text-2xl font-bold text-green-400">100%</div>
+                    <div class="text-xs text-slate-400">Zero-Downtime Updates</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CODE REPOSITORY -->
+        <div class="lg:col-span-8">
+            
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Manifest Registry</h2>
+                <div class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-400 border border-slate-700">Namespace: default</div>
+            </div>
+
+            <!-- TABS -->
+            <div class="flex gap-6 border-b border-slate-700 mb-6 overflow-x-auto">
+                <div class="nav-item active" onclick="switchTab('security')">1. Security & Secrets</div>
+                <div class="nav-item" onclick="switchTab('storage')">2. Storage & DB</div>
+                <div class="nav-item" onclick="switchTab('app')">3. App & Ingress</div>
+            </div>
+
+            <!-- TAB CONTENT: SECURITY -->
+            <div id="security" class="tab-content space-y-8">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-yellow-400 font-mono text-sm font-bold">clustersecret-store.yaml</h3>
+                        <span class="text-xs text-slate-500">Links K8s to AWS Secrets Manager</span>
+                    </div>
+                    <pre><code class="language-yaml">apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: aws-secrets-manager
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-east-1
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: aws-creds
+            key: AWS_ACCESS_KEY_ID
+            namespace: external-secrets
+          secretAccessKeySecretRef:
+            name: aws-creds
+            key: AWS_SECRET_ACCESS_KEY
+            namespace: external-secrets</code></pre>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-yellow-400 font-mono text-sm font-bold">external-secret.yaml</h3>
+                        <span class="text-xs text-slate-500">Fetches specific DB password</span>
+                    </div>
+                    <pre><code class="language-yaml">apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: my-db-fetcher
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: mysql-pass
+  data:
+    - secretKey: password
+      remoteRef:
+        key: prod/mysql-pass
+        property: password</code></pre>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT: STORAGE & DB -->
+            <div id="storage" class="tab-content space-y-8 hidden">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-indigo-400 font-mono text-sm font-bold">sc-mysql.yaml</h3>
+                        <span class="text-xs text-slate-500">AWS EBS gp3 Definition</span>
+                    </div>
+                    <pre><code class="language-yaml">apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+  encrypted: "true"
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer</code></pre>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-indigo-400 font-mono text-sm font-bold">svc-mysql.yaml</h3>
+                        <span class="text-xs text-slate-500">Headless Service for Stable Identity</span>
+                    </div>
+                    <pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  labels:
+    app: mysql
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306</code></pre>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-indigo-400 font-mono text-sm font-bold">statefulset-mysql.yaml</h3>
+                        <span class="text-xs text-slate-500">Stateful Backend w/ Init Containers</span>
+                    </div>
+                    <pre><code class="language-yaml">apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-statefulset
+spec:
+  serviceName: "mysql-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: init-mysql
+          image: busybox
+          command: ["sh", "-c", "chown -R 999:999 /var/lib/mysql"]
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: my_app_db
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -uroot -p$MYSQL_ROOT_PASSWORD"]
+            initialDelaySeconds: 30
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-persistent-storage
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: ebs-sc
+        resources:
+          requests:
+            storage: 10Gi</code></pre>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT: APP & INGRESS -->
+            <div id="app" class="tab-content space-y-8 hidden">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-blue-400 font-mono text-sm font-bold">ingress-class.yaml</h3>
+                        <span class="text-xs text-slate-500">Registers AWS ALB Controller</span>
+                    </div>
+                    <pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+spec:
+  controller: ingress.k8s.aws/alb</code></pre>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-blue-400 font-mono text-sm font-bold">app-integration.yaml</h3>
+                        <span class="text-xs text-slate-500">Deployment + Service + Ingress</span>
+                    </div>
+                    <pre><code class="language-yaml"># 1. The Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vote-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vote-app
+  template:
+    metadata:
+      labels:
+        app: vote-app
+    spec:
+      containers:
+      - name: vote-app
+        image: solajaz/vote-app:v6
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DB_HOST
+          value: "mysql-service"
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          value: "root"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass
+              key: password
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+
+---
+# 2. The Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote-app-service
+spec:
+  selector:
+    app: vote-app
+  ports:
+    - port: 80
+
+---
+# 3. The Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vote-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vote-app-service
+                port:
+                  number: 80</code></pre>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-800 p-8 text-center text-slate-600 text-sm">
+        &copy; 2024 CloudVote Enterprise. Documentation Generated for Technical Review.
+    </footer>
+
+    <script>
+        function switchTab(tabId) {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById(tabId).classList.remove('hidden');
+            // Set active state
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
